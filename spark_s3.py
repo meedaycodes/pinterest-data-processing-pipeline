@@ -1,5 +1,7 @@
 import boto3
 import pyspark
+from pyspark.sql.functions import pandas_udf
+from pyspark.sql.types import IntegerType, BooleanType
 import multiprocessing
 import operator
 import numpy as np
@@ -44,10 +46,35 @@ def read_files_from_s3():
         #session.read.json(message)
     return message_list
 
+@pandas_udf(returnType = BooleanType())
+def clean_message_downloaded(value= pd.Series):
+    if value == 1:
+        value = True
+    elif value == 0:
+        value = False
+    return value
+    
+
+@pandas_udf(returnType=IntegerType()) 
+def clean_follower_count(value=pd.Series):
+    value = list(value)
+    save_key = value.pop(-1)
+    value = "".join(value)
+    if save_key == "k":
+        value = int(value) * 1000
+    elif save_key == "M":
+        value = int(value) * 1000000
+    else:
+        value = int(value)
+    return value
+    
+
+
 def process_with_spark(message_data, session):
     spark_df = session.createDataFrame(pd.DataFrame(message_data))
-    spark_df.show()
-    
+    spark_df.select(clean_follower_count("follower_count")).show()
+    #print(spark_df.agg(Func.clean_message_downloaded(spark_df.downloaded)))
+    #spark_df.withColumn("follower_count", clean_follower_count(("follower_count")))
 
 
 session = create_spark_session

@@ -30,6 +30,5 @@ def upload_to_s3(consumer_instance):
 
 if __name__ == "__main__":
     kafka_consumer = create_consumer_instance()
-    upload_to_s3(kafka_consumer)
-
+    #upload_to_s3(kafka_consumer)
 

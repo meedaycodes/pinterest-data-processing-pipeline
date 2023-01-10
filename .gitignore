@@ -6,3 +6,10 @@ kafka_2.12-3.3.1
 learn
 linenv 
 tool.py
+credentials.py
+Pinterest_App_1/data
+lorem.txt
+new_data.json
+spark_stream.py
+stream_sample.py
+spark_s3.py
