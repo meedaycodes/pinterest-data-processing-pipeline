@@ -7,6 +7,29 @@ from credentials import *
 
 
 # Adding the packages required to get data from S3 
+os.environ["PYSPARK_SUBMIT_ARGS"] = "--packages com.amazonaws:aws-java-sdk-s3:1.12.196,org.apache.hadoop:hadoop-aws:3.3.1 pyspark-shell"
+
+# Creating our Spark configuration
+conf = SparkConf() \
+    .setAppName('S3toSpark') \
+    .setMaster('local[*]')
+
+sc=SparkContext(conf=conf)
+
+# Configure the setting to read from the S3 bucket
+accessKeyId= key_id
+secretAccessKey= secret_key
+hadoopConf = sc._jsc.hadoopConfiguration()
+hadoopConf.set('fs.s3a.access.key', accessKeyId)
+hadoopConf.set('fs.s3a.secret.key', secretAccessKey)
+hadoopConf.set('spark.hadoop.fs.s3a.aws.credentials.provider', 'org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider') # Allows the package to authenticate with AWS
+
+# Create our Spark session
+spark=SparkSession(sc)
+
+# Read from the S3 bucket
+df = spark.read.option("multiline", "true").json("s3a://pinterestdata/consumer*.json")
+
 
 @udf(returnType = IntegerType())
 def clean_follower_count(value):
@@ -77,29 +100,6 @@ def clean_description(value):
     else:
         value = value
     return value
-
-os.environ["PYSPARK_SUBMIT_ARGS"] = "--packages com.amazonaws:aws-java-sdk-s3:1.12.196,org.apache.hadoop:hadoop-aws:3.3.1 pyspark-shell"
-
-# Creating our Spark configuration
-conf = SparkConf() \
-    .setAppName('S3toSpark') \
-    .setMaster('local[*]')
-
-sc=SparkContext(conf=conf)
-
-# Configure the setting to read from the S3 bucket
-accessKeyId= key_id
-secretAccessKey= secret_key
-hadoopConf = sc._jsc.hadoopConfiguration()
-hadoopConf.set('fs.s3a.access.key', accessKeyId)
-hadoopConf.set('fs.s3a.secret.key', secretAccessKey)
-hadoopConf.set('spark.hadoop.fs.s3a.aws.credentials.provider', 'org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider') # Allows the package to authenticate with AWS
-
-# Create our Spark session
-spark=SparkSession(sc)
-
-# Read from the S3 bucket
-df = spark.read.option("multiline", "true").json("s3a://pinterestdata/consumer*.json")
 
 # You may want to change this to read csv depending on the files your reading from the bucket
 
