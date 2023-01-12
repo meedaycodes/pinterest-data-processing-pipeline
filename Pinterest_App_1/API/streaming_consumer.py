@@ -5,9 +5,9 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import udf, col
 from pyspark import SparkConf, SparkContext
 from pyspark.rdd import RDD
-from pyspark.sql.types import IntegerType, BooleanType, StringType, NullType
-from pyspark.sql.functions  import from_json
+import pyspark.sql.functions as F
 from pyspark.sql.types import *
+from pyspark.sql.types import StructType, ArrayType, StructField, StringType,  BooleanType, IntegerType
 
 
 os.environ['PYSPARK_SUBMIT_ARGS'] = '--packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.3.1 pyspark-shell streaming_consumer.py'
@@ -94,7 +94,7 @@ def clean_description(value):
         value = value
     return value
 
-def process(stream_df, batch_id):
+def process(stream_df, epoch):
     stream_df = stream_df.withColumn("downloaded", clean_message_downloaded(col("downloaded"))) \
         .withColumn("follower_count", clean_follower_count(col("follower_count"))) \
         .withColumn("tag_list", clean_tag_list(col("tag_list"))) \
@@ -112,18 +112,17 @@ def real_time_streaming():
     # Only display Error messages in the console.
     spark.sparkContext.setLogLevel("ERROR")
 
-    # Construct a streaming DataFrame that reads from topic
-    stream_df = spark \
+    # Construct a streaming DataFrame that reads from topi 
+    live_stream = spark \
             .readStream \
             .format("kafka") \
             .option("kafka.bootstrap.servers", kafka_bootstrap_servers) \
             .option("subscribe", kafka_topic_name) \
-            .option("startingOffsets", "latest") \
+            .option("startingOffsets", "earliest") \
             .load()
     # Select the value part of the kafka message and cast it to a string.
-    stream_df = stream_df.selectExpr("CAST(value as STRING)")
-    print(stream_df)
-    stream_df_schema = StructType(fields = [StructField("category", StringType()),
+    live_stream = live_stream.selectExpr("CAST(value as STRING)")
+    stream_df_schema = ArrayType(StructType([StructField("category", StringType()),
                                             StructField("index", StringType()),
                                             StructField("unique_id", StringType()),
                                             StructField("title", StringType()),
@@ -134,11 +133,12 @@ def real_time_streaming():
                                             StructField("image_src", StringType()),
                                             StructField("downloaded", IntegerType()),
                                             StructField("save_location", IntegerType())
-                                            ])
-    stream_df = stream_df.withColumn("value", from_json(stream_df.value, stream_df_schema)).select("value.*")
-    print(type(stream_df))
+                                            ]))
+    stream_df = live_stream.withColumn("temp", F.explode(F.from_json("value", stream_df_schema))).select("temp.*")
+    stream_df.printSchema()
+    #print(type(stream_df))
     #stream_df = process(stream_df, epoch)
-    stream_df = stream_df.writeStream \
+    stream_df.writeStream \
         .format("console") \
         .outputMode("append") \
         .foreachBatch(process) \
