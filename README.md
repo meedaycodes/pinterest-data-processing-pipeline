@@ -1,3 +1,5 @@
+![Pinterest Data Eng  UML](https://user-images.githubusercontent.com/112330482/214085427-57d709cf-cff8-42da-b668-9ef9db0565f0.png)
+
 ## Milestones within this Project
 - The Project is a simulation of Pinterest Data Processing Pipeline using both  Batch and Streaming Processing techniques with BigData tools including FastAPI, Kafka, AWS S3, Pyspark API (Batch Processing and Structured Streaming), Airflow, Docker Postgresql.
 ### Milestone one
